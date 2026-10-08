@@ -24,6 +24,18 @@ CREATE TABLE dbo.transferenciaStp (
 ## Paso 3: Correr la api
 dotnet run --project src/Api
 
+## Paso 4: Enviar una request
+curl --request POST \
+  --url http://localhost:5008/webhook-stp \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "monto": 1500.75,
+  "claveRastreo": "CAPTA-1234",
+  "bancoEmisor": "BBVA",
+  "bancoReceptor": "Banorte",
+  "cunetaBeneficiar": "0123456789"
+}'
+
 ### Database first introspection, una utilidad que pueds hacer
 dotnet ef dbcontext scaffold "Server=localhost,1433;Database=capta;User Id=sa;Password=Captavale123!;TrustServerCertificate=True;" Microsoft.EntityFrameworkCore.SqlServer --project src/Infrastructure/PruebaConceptoRabbitMQ.Infrastructure.csproj --startup-project src/Api/PruebaConceptoRabbitMQ.Api.csproj --output-dir ../Domain/Generated --context AppDbContext --context-dir . --force
 

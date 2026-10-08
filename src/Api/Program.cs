@@ -1,12 +1,17 @@
 using Microsoft.EntityFrameworkCore;
+using PruebaConceptoRabbitMQ.Domain;
+using PruebaConceptoRabbitMQ.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddOpenApi();
 
-builder.Services.AddDbContext<PruebaConceptoRabbitMQ.Infrastructure.AppDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
+builder.Services.AddHostedService<RabbitMqConsumer>();
 
 var app = builder.Build();
 
@@ -16,27 +21,18 @@ if (app.Environment.IsDevelopment())
 
     // Create database and tables on first run (demo only)
     using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<PruebaConceptoRabbitMQ.Infrastructure.AppDbContext>();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
 }
 
 app.UseHttpsRedirection();
 
-app.MapPost("/webhook-stp", async (PruebaConceptoRabbitMQ.Domain.TransferenciaStp dto, PruebaConceptoRabbitMQ.Infrastructure.AppDbContext db) =>
+app.MapPost("/webhook-stp", async (TransferenciaStp dto, IRabbitMqPublisher publisher) =>
 {
-    var entity = new PruebaConceptoRabbitMQ.Domain.TransferenciaStp
-    {
-        Monto = dto.Monto,
-        ClaveRastreo = dto.ClaveRastreo,
-        BancoEmisor = dto.BancoEmisor,
-        BancoReceptor = dto.BancoReceptor,
-        CunetaBeneficiar = dto.CunetaBeneficiar
-    };
+    // Only publish to queue - the consumer will perform the actual insert
+    await publisher.PublishAsync(dto);
 
-    db.TransferenciasStp.Add(entity);
-    await db.SaveChangesAsync();
-
-    return Results.Created($"/webhook-stp/{entity.Id}", entity);
+    return Results.Accepted($"/webhook-stp", dto);
 })
 .WithName("CreateTransferenciaStp");
 
