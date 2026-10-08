@@ -5,7 +5,7 @@ docker compose up -d
 ### Paso 1: Levantar contenedores
 docker compose up -d
 Los contenedores contienen base de datos SQL local y rabbitMQ local
-Esto es solo para la prueba de concepto, en producción de preferencia se debería correr ambos servicios "bare metal" sin contenedores.
+Esto es solo para la prueba de concepto, en producción de preferencia se debería correr ambos servicios "bare metal" sin contenedores para mejorar tiempos de respuesta.
 
 ## Paso 2: Crear la tabla en base de datos
 create database capta;
@@ -35,6 +35,9 @@ curl --request POST \
   "bancoReceptor": "Banorte",
   "cunetaBeneficiar": "0123456789"
 }'
+
+## Paso 5: Dashboard rabbitmq
+http://localhost:15672/#/queues/%2F/transferencias-stp
 
 ### Database first introspection, una utilidad que pueds hacer
 dotnet ef dbcontext scaffold "Server=localhost,1433;Database=capta;User Id=sa;Password=Captavale123!;TrustServerCertificate=True;" Microsoft.EntityFrameworkCore.SqlServer --project src/Infrastructure/PruebaConceptoRabbitMQ.Infrastructure.csproj --startup-project src/Api/PruebaConceptoRabbitMQ.Api.csproj --output-dir ../Domain/Generated --context AppDbContext --context-dir . --force
