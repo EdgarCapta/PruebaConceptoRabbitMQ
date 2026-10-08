@@ -4,7 +4,7 @@ services:
     container_name: pruebaconcepto-sqlserver
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "12341234a"
+      MSSQL_SA_PASSWORD: "Captavale123!"
     ports:
       - "1433:1433"
     volumes:
