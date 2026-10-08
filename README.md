@@ -21,6 +21,9 @@ CREATE TABLE dbo.transferenciaStp (
     cunetaBeneficiar NVARCHAR(50) NULL
 );
 
+## Paso 3: Correr la api
+dotnet run --project src/Api
+
 ### Database first introspection, una utilidad que pueds hacer
 dotnet ef dbcontext scaffold "Server=localhost,1433;Database=capta;User Id=sa;Password=Captavale123!;TrustServerCertificate=True;" Microsoft.EntityFrameworkCore.SqlServer --project src/Infrastructure/PruebaConceptoRabbitMQ.Infrastructure.csproj --startup-project src/Api/PruebaConceptoRabbitMQ.Api.csproj --output-dir ../Domain/Generated --context AppDbContext --context-dir . --force
 

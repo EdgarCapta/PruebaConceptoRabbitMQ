@@ -1,41 +1,43 @@
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.AddDbContext<PruebaConceptoRabbitMQ.Infrastructure.AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
+    // Create database and tables on first run (demo only)
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<PruebaConceptoRabbitMQ.Infrastructure.AppDbContext>();
+    db.Database.EnsureCreated();
 }
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+app.MapPost("/webhook-stp", async (PruebaConceptoRabbitMQ.Domain.TransferenciaStp dto, PruebaConceptoRabbitMQ.Infrastructure.AppDbContext db) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    var entity = new PruebaConceptoRabbitMQ.Domain.TransferenciaStp
+    {
+        Monto = dto.Monto,
+        ClaveRastreo = dto.ClaveRastreo,
+        BancoEmisor = dto.BancoEmisor,
+        BancoReceptor = dto.BancoReceptor,
+        CunetaBeneficiar = dto.CunetaBeneficiar
+    };
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+    db.TransferenciasStp.Add(entity);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/webhook-stp/{entity.Id}", entity);
 })
-.WithName("GetWeatherForecast");
+.WithName("CreateTransferenciaStp");
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
