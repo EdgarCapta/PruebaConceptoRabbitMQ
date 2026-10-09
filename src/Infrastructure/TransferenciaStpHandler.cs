@@ -20,6 +20,8 @@ public sealed class TransferenciaStpHandler : IQueueHandler
         var transferencia = JsonSerializer.Deserialize<TransferenciaStp>(jsonMessage);
         if (transferencia is null) return;
 
+        Console.WriteLine($"[TRANSFERENCIAS-STP] Corriendo handlers");
+
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 

@@ -9,7 +9,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddSingleton<RabbitMqPublisher>();
 
-// tRANSFERENCIAstp
+// transferencias-stp
 builder.Services.AddSingleton<TransferenciaStpHandler>();
 builder.Services.AddSingleton<IQueueHandler>(sp => sp.GetRequiredService<TransferenciaStpHandler>());
 builder.Services.AddHostedService(sp =>
@@ -17,7 +17,7 @@ builder.Services.AddHostedService(sp =>
         sp.GetRequiredService<TransferenciaStpHandler>(),
         sp.GetRequiredService<IConfiguration>()));
 
-// SMS
+// sms
 builder.Services.AddSingleton<SmsHandler>();
 builder.Services.AddSingleton<IQueueHandler>(sp => sp.GetRequiredService<SmsHandler>());
 builder.Services.AddHostedService(sp =>
@@ -38,17 +38,18 @@ app.UseHttpsRedirection();
 
 app.MapPost("/webhook-stp", async (TransferenciaStp dto, RabbitMqPublisher publisher) =>
 {
-    var queueName =  "transferencias-stp";
+    var queueName = "transferencias-stp";
     await publisher.PublishAsync(dto, queueName);
 
     var response = new { queued = true, queueName };
     return Results.Accepted($"/webhook-stp", response);
 });
 
-app.MapPost("/send-sms", async (SmsMessage sms, RabbitMqPublisher publisher) =>
+app.MapPost("/send-sms", async (SmsBody sms, RabbitMqPublisher publisher) =>
 {
-    var queueName =  "sms";
+    var queueName = "sms";
     await publisher.PublishAsync(sms, queueName);
+
 
     var response = new { queued = true, queueName };
     return Results.Accepted($"/send-sms", response);

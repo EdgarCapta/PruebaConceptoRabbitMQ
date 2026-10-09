@@ -19,6 +19,8 @@ public sealed class RabbitMqConsumer : Microsoft.Extensions.Hosting.BackgroundSe
     {
         _handler = handler;
         _configuration = configuration;
+
+        Console.WriteLine(handler.QueueName);
     }
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
