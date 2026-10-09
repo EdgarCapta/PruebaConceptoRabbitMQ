@@ -2,9 +2,9 @@ using System.Text.Json;
 
 namespace PruebaConceptoRabbitMQ.Infrastructure;
 
-public sealed class SmsNotificationHandler : IQueueHandler
+public sealed class SmsHandler : IQueueHandler
 {
-    public string QueueName => "sms-notifications";
+    public string QueueName => "sms";
 
     public Task HandleAsync(string jsonMessage, CancellationToken cancellationToken)
     {

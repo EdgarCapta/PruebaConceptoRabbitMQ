@@ -9,16 +9,20 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddSingleton<RabbitMqPublisher>();
 
-builder.Services.AddSingleton<IQueueHandler, TransferenciaStpHandler>();
+// tRANSFERENCIAstp
+builder.Services.AddSingleton<TransferenciaStpHandler>();
+builder.Services.AddSingleton<IQueueHandler>(sp => sp.GetRequiredService<TransferenciaStpHandler>());
 builder.Services.AddHostedService(sp =>
     new RabbitMqConsumer(
         sp.GetRequiredService<TransferenciaStpHandler>(),
         sp.GetRequiredService<IConfiguration>()));
-        
-builder.Services.AddSingleton<IQueueHandler, SmsNotificationHandler>();
+
+// SMS
+builder.Services.AddSingleton<SmsHandler>();
+builder.Services.AddSingleton<IQueueHandler>(sp => sp.GetRequiredService<SmsHandler>());
 builder.Services.AddHostedService(sp =>
     new RabbitMqConsumer(
-        sp.GetRequiredService<SmsNotificationHandler>(),
+        sp.GetRequiredService<SmsHandler>(),
         sp.GetRequiredService<IConfiguration>()));
 
 var app = builder.Build();
