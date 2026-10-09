@@ -1,6 +1,6 @@
 ## TLDR
 docker compose up -d
-
+dotnet run --project src/Api
 
 ### Paso 1: Levantar contenedores
 docker compose up -d
