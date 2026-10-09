@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
@@ -45,6 +47,9 @@ public sealed class RabbitMqConsumer : Microsoft.Extensions.Hosting.BackgroundSe
             arguments: null,
             cancellationToken: cancellationToken);
 
+        // Quality of service, 10 tareas a la vez
+        await _channel.BasicQosAsync(0, prefetchCount: 10, global: false, cancellationToken: cancellationToken);
+
         var consumer = new AsyncEventingBasicConsumer(_channel);
 
         consumer.ReceivedAsync += async (model, ea) =>
@@ -60,7 +65,39 @@ public sealed class RabbitMqConsumer : Microsoft.Extensions.Hosting.BackgroundSe
             }
             catch
             {
-                await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true, cancellationToken: cancellationToken);
+                //  RABBIT MQ NO TIENE RETRY??
+                var retryCount = 0;
+                if (ea.BasicProperties?.Headers?.TryGetValue("x-retry-count", out var retryObj) == true && retryObj is not null)
+                {
+                    retryCount = Convert.ToInt32(retryObj);
+                }
+
+                if (retryCount < 3)
+                {
+                    var newProps = new BasicProperties
+                    {
+                        Persistent = true,
+                        ContentType = "application/json",
+                        Headers = new Dictionary<string, object?>
+                        {
+                            ["x-retry-count"] = retryCount + 1
+                        }
+                    };
+
+                    await _channel.BasicPublishAsync(
+                        exchange: "",
+                        routingKey: queueName,
+                        mandatory: false,
+                        basicProperties: newProps,
+                        body: ea.Body,
+                        cancellationToken: cancellationToken);
+
+                    await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, cancellationToken: cancellationToken);
+                }
+                else
+                {
+                    await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, cancellationToken: cancellationToken);
+                }
             }
         };
 
@@ -70,10 +107,13 @@ public sealed class RabbitMqConsumer : Microsoft.Extensions.Hosting.BackgroundSe
             consumer: consumer,
             cancellationToken: cancellationToken);
 
-        while (!cancellationToken.IsCancellationRequested)
+        // El servicio se queda vivo hasta que llega cancellationtoken
+        try
         {
-            await Task.Delay(1000, cancellationToken);
+            await Task.Delay(Timeout.Infinite, cancellationToken);
         }
+        catch (TaskCanceledException)
+        { }
     }
 
     public override void Dispose()
