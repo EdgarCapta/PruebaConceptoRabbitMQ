@@ -7,20 +7,20 @@ using RabbitMQ.Client.Events;
 
 namespace PruebaConceptoRabbitMQ.Infrastructure;
 
-public sealed class RabbitMqConsumer : Microsoft.Extensions.Hosting.BackgroundService
+public class RabbitMqConsumer<THandler> : Microsoft.Extensions.Hosting.BackgroundService
+    where THandler : IQueueHandler
 {
-    private readonly IQueueHandler _handler;
+    private readonly THandler _handler;
     private readonly IConfiguration _configuration;
     private IConnection? _connection;
     private IChannel? _channel;
 
-    // Al constructor le tienes que pasar un handler!!
-    public RabbitMqConsumer(IQueueHandler handler, IConfiguration configuration)
+    public RabbitMqConsumer(THandler handler, IConfiguration configuration)
     {
         _handler = handler;
         _configuration = configuration;
 
-        Console.WriteLine(handler.QueueName);
+        Console.WriteLine($"CREANDO HANDLER: {_handler.QueueName}");
     }
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)

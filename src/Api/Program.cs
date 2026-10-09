@@ -11,17 +11,15 @@ builder.Services.AddSingleton<RabbitMqPublisher>();
 
 // transferencias-stp
 builder.Services.AddSingleton<TransferenciaStpHandler>();
-builder.Services.AddSingleton<IQueueHandler>(sp => sp.GetRequiredService<TransferenciaStpHandler>());
 builder.Services.AddHostedService(sp =>
-    new RabbitMqConsumer(
+    new RabbitMqConsumer<TransferenciaStpHandler>(
         sp.GetRequiredService<TransferenciaStpHandler>(),
         sp.GetRequiredService<IConfiguration>()));
 
 // sms
 builder.Services.AddSingleton<SmsHandler>();
-builder.Services.AddSingleton<IQueueHandler>(sp => sp.GetRequiredService<SmsHandler>());
 builder.Services.AddHostedService(sp =>
-    new RabbitMqConsumer(
+    new RabbitMqConsumer<SmsHandler>(
         sp.GetRequiredService<SmsHandler>(),
         sp.GetRequiredService<IConfiguration>()));
 
