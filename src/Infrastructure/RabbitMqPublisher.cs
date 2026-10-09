@@ -5,12 +5,7 @@ using RabbitMQ.Client;
 
 namespace PruebaConceptoRabbitMQ.Infrastructure;
 
-public interface IRabbitMqPublisher
-{
-    Task PublishAsync<T>(T message, CancellationToken cancellationToken = default);
-}
-
-public sealed class RabbitMqPublisher : IRabbitMqPublisher, IDisposable
+public sealed class RabbitMqPublisher : IDisposable
 {
     private readonly IConnection _connection;
     private readonly IChannel _channel;
@@ -18,17 +13,17 @@ public sealed class RabbitMqPublisher : IRabbitMqPublisher, IDisposable
 
     public RabbitMqPublisher(IConfiguration configuration)
     {
-        var rabbitSection = configuration.GetSection("RabbitMQ");
+        var rabbitConfig = configuration.GetSection("RabbitMQ");
 
         var factory = new ConnectionFactory
         {
-            HostName = rabbitSection["HostName"] ?? "localhost",
-            Port = int.Parse(rabbitSection["Port"] ?? "5672"),
-            UserName = rabbitSection["UserName"] ?? "guest",
-            Password = rabbitSection["Password"] ?? "guest"
+            HostName = rabbitConfig["HostName"] ?? "localhost",
+            Port = int.Parse(rabbitConfig["Port"] ?? "5672"),
+            UserName = rabbitConfig["UserName"] ?? "guest",
+            Password = rabbitConfig["Password"] ?? "guest"
         };
 
-        _queueName = rabbitSection["QueueName"] ?? "transferencias-stp";
+        _queueName = rabbitConfig["QueueName"] ?? "transferencias-stp";
 
         _connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
         _channel = _connection.CreateChannelAsync().GetAwaiter().GetResult();
@@ -38,7 +33,8 @@ public sealed class RabbitMqPublisher : IRabbitMqPublisher, IDisposable
             durable: true,
             exclusive: false,
             autoDelete: false,
-            arguments: null).GetAwaiter().GetResult();
+            arguments: null
+        ).GetAwaiter().GetResult();
     }
 
     public async Task PublishAsync<T>(T message, CancellationToken cancellationToken = default)

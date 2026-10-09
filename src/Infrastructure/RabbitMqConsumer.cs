@@ -25,18 +25,19 @@ public sealed class RabbitMqConsumer : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        var rabbitSection = _configuration.GetSection("RabbitMQ");
+        var rabbitConfig = _configuration.GetSection("RabbitMQ");
 
         var factory = new ConnectionFactory
         {
-            HostName = rabbitSection["HostName"] ?? "localhost",
-            Port = int.Parse(rabbitSection["Port"] ?? "5672"),
-            UserName = rabbitSection["UserName"] ?? "guest",
-            Password = rabbitSection["Password"] ?? "guest"
+            HostName = rabbitConfig["HostName"] ?? "localhost",
+            Port = int.Parse(rabbitConfig["Port"] ?? "5672"),
+            UserName = rabbitConfig["UserName"] ?? "guest",
+            Password = rabbitConfig["Password"] ?? "guest"
         };
 
-        _queueName = rabbitSection["QueueName"] ?? "transferencias-stp";
+        _queueName = rabbitConfig["QueueName"] ?? "transferencias-stp";
 
+        //https://www.rabbitmq.com/tutorials/tutorial-three-dotnet
         _connection = await factory.CreateConnectionAsync(cancellationToken);
         _channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
