@@ -12,6 +12,7 @@ public sealed class RabbitMqConsumer : Microsoft.Extensions.Hosting.BackgroundSe
     private IConnection? _connection;
     private IChannel? _channel;
 
+    // Al constructor le tienes que pasar un handler!!
     public RabbitMqConsumer(IQueueHandler handler, IConfiguration configuration)
     {
         _handler = handler;

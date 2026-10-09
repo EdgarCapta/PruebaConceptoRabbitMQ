@@ -9,7 +9,6 @@ public sealed class RabbitMqPublisher : IDisposable
 {
     private readonly IConnection _connection;
     private readonly IChannel _channel;
-    private readonly string _queueName;
 
     public RabbitMqPublisher(IConfiguration configuration)
     {
@@ -23,22 +22,20 @@ public sealed class RabbitMqPublisher : IDisposable
             Password = rabbitConfig["Password"] ?? "guest"
         };
 
-        _queueName = rabbitConfig["QueueName"] ?? "transferencias-stp";
-
         _connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
         _channel = _connection.CreateChannelAsync().GetAwaiter().GetResult();
+    }
 
-        _channel.QueueDeclareAsync(
-            queue: _queueName,
+    public async Task PublishAsync<T>(T message, string queueName, CancellationToken cancellationToken = default)
+    {
+        await _channel.QueueDeclareAsync(
+            queue: queueName,
             durable: true,
             exclusive: false,
             autoDelete: false,
-            arguments: null
-        ).GetAwaiter().GetResult();
-    }
+            arguments: null,
+            cancellationToken: cancellationToken);
 
-    public async Task PublishAsync<T>(T message, CancellationToken cancellationToken = default)
-    {
         var json = JsonSerializer.Serialize(message);
         var body = Encoding.UTF8.GetBytes(json);
 
@@ -50,7 +47,7 @@ public sealed class RabbitMqPublisher : IDisposable
 
         await _channel.BasicPublishAsync(
             exchange: "",
-            routingKey: _queueName,
+            routingKey: queueName,
             mandatory: false,
             basicProperties: properties,
             body: body,
