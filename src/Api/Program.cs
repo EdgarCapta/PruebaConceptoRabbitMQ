@@ -8,7 +8,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddSingleton<RabbitMqPublisher>();
-builder.Services.AddHostedService<RabbitMqConsumer>();
+
+builder.Services.AddSingleton<IQueueHandler, TransferenciaStpHandler>();
+builder.Services.AddHostedService(sp =>
+    new RabbitMqConsumer(
+        sp.GetRequiredService<TransferenciaStpHandler>(),
+        sp.GetRequiredService<IConfiguration>()));
 
 var app = builder.Build();
 

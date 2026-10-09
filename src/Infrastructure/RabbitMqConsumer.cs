@@ -1,25 +1,20 @@
 using System.Text;
-using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using PruebaConceptoRabbitMQ.Domain;
 
 namespace PruebaConceptoRabbitMQ.Infrastructure;
 
-public sealed class RabbitMqConsumer : BackgroundService
+public sealed class RabbitMqConsumer : Microsoft.Extensions.Hosting.BackgroundService
 {
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IQueueHandler _handler;
     private readonly IConfiguration _configuration;
     private IConnection? _connection;
     private IChannel? _channel;
-    private string _queueName = "transferencias-stp";
 
-    public RabbitMqConsumer(IServiceScopeFactory scopeFactory, IConfiguration configuration)
+    public RabbitMqConsumer(IQueueHandler handler, IConfiguration configuration)
     {
-        _scopeFactory = scopeFactory;
+        _handler = handler;
         _configuration = configuration;
     }
 
@@ -35,15 +30,15 @@ public sealed class RabbitMqConsumer : BackgroundService
             Password = rabbitConfig["Password"] ?? "guest"
         };
 
-        _queueName = rabbitConfig["QueueName"] ?? "transferencias-stp";
+        var queueName = _handler.QueueName;
 
         //https://www.rabbitmq.com/tutorials/tutorial-three-dotnet
         _connection = await factory.CreateConnectionAsync(cancellationToken);
         _channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
         await _channel.QueueDeclareAsync(
-            queue: _queueName,
-            durable: true, 
+            queue: queueName,
+            durable: true,
             exclusive: false,
             autoDelete: false,
             arguments: null,
@@ -57,25 +52,8 @@ public sealed class RabbitMqConsumer : BackgroundService
             {
                 var body = ea.Body.ToArray();
                 var json = Encoding.UTF8.GetString(body);
-                var transferencia = JsonSerializer.Deserialize<TransferenciaStp>(json);
 
-                if (transferencia is not null)
-                {
-                    using var scope = _scopeFactory.CreateScope();
-                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                    var entity = new TransferenciaStp
-                    {
-                        Monto = transferencia.Monto,
-                        ClaveRastreo = transferencia.ClaveRastreo,
-                        BancoEmisor = transferencia.BancoEmisor,
-                        BancoReceptor = transferencia.BancoReceptor,
-                        CunetaBeneficiar = transferencia.CunetaBeneficiar
-                    };
-
-                    db.TransferenciasStp.Add(entity);
-                    await db.SaveChangesAsync(cancellationToken);
-                }
+                await _handler.HandleAsync(json, cancellationToken);
 
                 await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false, cancellationToken: cancellationToken);
             }
@@ -86,10 +64,10 @@ public sealed class RabbitMqConsumer : BackgroundService
         };
 
         await _channel.BasicConsumeAsync(
-            queue: _queueName,
+            queue: queueName,
             autoAck: false,
             consumer: consumer,
-            cancellationToken);
+            cancellationToken: cancellationToken);
 
         while (!cancellationToken.IsCancellationRequested)
         {
